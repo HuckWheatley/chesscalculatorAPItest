@@ -22,10 +22,31 @@ let boardState = Array(8).fill(null).map(() => Array(8).fill(null));
 // Starting position in FEN notation
 const startingFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
 
-// Create chessboard
+// WebSocket connection
+let ws = null;
+
+
+// Create chessboard with algebraic notation
 function createChessboard() {
     const board = document.getElementById('chessboard');
     board.innerHTML = '';
+    
+    // Remove wrapper modifications if they exist
+    let wrapper = board.parentElement;
+    if (wrapper.classList.contains('board-wrapper')) {
+        // Remove old labels
+        const rankLabels = wrapper.querySelector('.rank-labels');
+        const fileLabels = wrapper.querySelector('.file-labels');
+        if (rankLabels) rankLabels.remove();
+        if (fileLabels) fileLabels.remove();
+    } else {
+        wrapper = document.createElement('div');
+        wrapper.className = 'board-wrapper';
+        board.parentNode.insertBefore(wrapper, board);
+        wrapper.appendChild(board);
+    }
+    
+    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
     
     for (let row = 0; row < 8; row++) {
         for (let col = 0; col < 8; col++) {
@@ -33,6 +54,13 @@ function createChessboard() {
             square.className = `square ${(row + col) % 2 === 0 ? 'light' : 'dark'}`;
             square.dataset.row = row;
             square.dataset.col = col;
+            
+            // Add file letter for bottom row
+            square.dataset.file = files[col];
+            
+            // Add rank number for leftmost column (8 to 1)
+            square.dataset.rank = 8 - row;
+            
             board.appendChild(square);
         }
     }
@@ -205,8 +233,118 @@ function resetBoard() {
     analyzePosition();
 }
 
+// Initialize WebSocket connection
+function initializeWebSocket() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        return Promise.resolve();
+    }
+    
+    return new Promise((resolve, reject) => {
+        ws = new WebSocket('wss://chess-api.com/v1');
+        
+        ws.onopen = () => {
+            console.log('WebSocket connection established');
+            resolve();
+        };
+        
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+            reject(error);
+        };
+        
+        ws.onclose = () => {
+            console.log('WebSocket connection closed');
+        };
+    });
+}
+
+// Get best move using Chess API via POST
+async function getBestMovePost(fen) {
+    try {
+        const response = await fetch("https://chess-api.com/v1", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ 
+                fen: fen,
+                depth: 12,
+                variants: 3
+            }),
+        });
+        
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Error fetching best move:', error);
+        throw error;
+    }
+}
+
+// Display engine analysis
+function displayEngineAnalysis(analysisData) {
+    const analysisResult = document.getElementById('analysis-result');
+    
+    if (!analysisData || analysisData.length === 0) {
+        analysisResult.innerHTML += '<p><strong>Engine Analysis:</strong> No analysis available.</p>';
+        return;
+    }
+    
+    // Find the bestmove
+    const bestMove = analysisData.find(move => move.type === 'bestmove') || analysisData[analysisData.length - 1];
+    
+    let engineAnalysis = '<div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #ddd;">';
+    engineAnalysis += '<h3>Stockfish 17 Analysis:</h3>';
+    
+    if (bestMove) {
+        engineAnalysis += `<p><strong>Best Move:</strong> ${bestMove.san || bestMove.lan}</p>`;
+        engineAnalysis += `<p><strong>Evaluation:</strong> ${bestMove.eval !== undefined ? bestMove.eval.toFixed(2) : 'N/A'}</p>`;
+        engineAnalysis += `<p><strong>Depth:</strong> ${bestMove.depth}</p>`;
+        
+        if (bestMove.winChance !== undefined) {
+            engineAnalysis += `<p><strong>Win Chance:</strong> ${bestMove.winChance.toFixed(1)}%</p>`;
+        }
+        
+        if (bestMove.mate !== null && bestMove.mate !== undefined) {
+            engineAnalysis += `<p><strong>Mate in:</strong> ${Math.abs(bestMove.mate)} moves</p>`;
+        }
+        
+        engineAnalysis += `<p><strong>Position:</strong> ${bestMove.text || 'Analysis complete'}</p>`;
+        
+        // Show continuation if available
+        if (bestMove.continuationArr && bestMove.continuationArr.length > 0) {
+            engineAnalysis += '<p><strong>Best line:</strong></p>';
+            engineAnalysis += '<div class="move-list">';
+            bestMove.continuationArr.forEach((move, index) => {
+                if (index % 2 === 0) {
+                    engineAnalysis += `<p>${Math.floor(index / 2) + 1}. ${move} `;
+                } else {
+                    engineAnalysis += `${move}</p>`;
+                }
+            });
+            engineAnalysis += '</div>';
+        }
+    }
+    
+    // Show top 3 moves if available
+    const topMoves = analysisData.filter(move => move.type === 'move' || move.type === 'bestmove').slice(0, 3);
+    if (topMoves.length > 1) {
+        engineAnalysis += '<p style="margin-top: 15px;"><strong>Top Moves:</strong></p>';
+        engineAnalysis += '<div class="move-list">';
+        topMoves.forEach((move, index) => {
+            engineAnalysis += `<p>${index + 1}. ${move.san || move.lan} (${move.eval !== undefined ? move.eval.toFixed(2) : 'N/A'})</p>`;
+        });
+        engineAnalysis += '</div>';
+    }
+    
+    engineAnalysis += '</div>';
+    
+    const currentContent = analysisResult.innerHTML;
+    analysisResult.innerHTML = currentContent + engineAnalysis;
+}
+
 // Analyze position
-function analyzePosition() {
+async function analyzePosition() {
     const turn = document.getElementById('turn-select').value;
     const analysisResult = document.getElementById('analysis-result');
     const fenOutput = document.getElementById('fen-output');
@@ -291,6 +429,20 @@ function analyzePosition() {
     }
     
     analysisResult.innerHTML = analysis;
+    
+    // Get engine analysis
+    try {
+        analysisResult.innerHTML += '<p style="margin-top: 15px;"><em>Analyzing position with Stockfish...</em></p>';
+        
+        const engineData = await getBestMovePost(fen);
+        
+        // Handle both array and single object responses
+        const analysisArray = Array.isArray(engineData) ? engineData : [engineData];
+        displayEngineAnalysis(analysisArray);
+    } catch (error) {
+        console.error('Error getting engine analysis:', error);
+        analysisResult.innerHTML += '<p style="color: red;"><strong>Engine Analysis:</strong> Unable to connect to Chess API. Please try again.</p>';
+    }
 }
 
 // Clear board

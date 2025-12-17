@@ -5,7 +5,7 @@
 }
 
 .background {
-    background: linear-gradient(141deg, #373737 0%, #283a21 51%, #03611c 75%);
+    background: linear-gradient(141deg, #373737 0%, #1d3115 51%, #01260b 75%);
     min-height: 100vh;
     padding: 20px;
     font-family: Arial, sans-serif;
@@ -91,17 +91,27 @@ h1 {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    
+    
 }
 
 .piece-palette {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgb(220, 210, 200);
     padding: 15px;
     border-radius: 10px;
+    background: url('chessboardtexture.jpg');
+    background-size: cover;
+    background-position: center;
+    background-blend-mode: lighten;
+    filter: grayscale(70%) brightness(1.7);
+
+    
 }
 
 .piece-palette h3 {
     color: white;
     margin-bottom: 10px;
+    
 }
 
 .piece-group {
@@ -109,6 +119,7 @@ h1 {
     gap: 10px;
     margin-bottom: 10px;
     flex-wrap: wrap;
+    
 }
 
 .chess-piece {
@@ -119,6 +130,7 @@ h1 {
     border-radius: 5px;
     user-select: none;
     transition: transform 0.2s;
+    
 }
 
 .chess-piece:hover {
@@ -129,13 +141,36 @@ h1 {
     cursor: grabbing;
 }
 
+.board-wrapper {
+    display: inline-block;
+    position: relative;
+    padding: 0;
+    border-radius: 5px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+
+.board-wrapper::before {
+    display: none;
+    
+}
+
+.rank-labels,
+.file-labels {
+    display: none;
+}
+
 #chessboard {
     display: grid;
     grid-template-columns: repeat(8, 60px);
     grid-template-rows: repeat(8, 60px);
     border: 3px solid #333;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    background: white;
+    box-shadow: none;
+    background: url('chessboardtexture.jpg');
+    background-size: cover;
+    background-position: center;
+    background-blend-mode: lighten;
+    filter: grayscale(70%) brightness(1.3);
 }
 
 .square {
@@ -148,22 +183,95 @@ h1 {
     cursor: pointer;
     position: relative;
     user-select: none;
+    
+    
 }
 
 .square.light {
-    background: #f0d9b5;
+    background: #4e4c48;
+    position: relative;
+}
+
+.square.light::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('chessboardtexture.jpg');
+    background-size: 480px 480px;
+    background-position: calc(var(--col) * -60px) calc(var(--row) * -60px);
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: 0;
 }
 
 .square.dark {
-    background: #b58863;
+    background: #9c938c;
+    position: relative;
+}
+
+.square.dark::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('chessboardtexture.jpg');
+    background-size: 480px 480px;
+    background-position: calc(var(--col) * -60px) calc(var(--row) * -60px);
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Add coordinate labels inside squares */
+.square::before {
+    position: absolute;
+    font-size: 10px;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    
+}
+
+/* File labels (a-h) on rank 1 */
+.square[data-row="7"]::before {
+    content: attr(data-file);
+    bottom: 2px;
+    right: 3px;
+}
+
+/* Rank labels (1-8) on file a */
+.square[data-col="0"]::after {
+    content: attr(data-rank);
+    position: absolute;
+    top: 2px;
+    left: 3px;
+    font-size: 10px;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+}
+
+/* Color coordination based on square color */
+.square.light::before,
+.square.light::after {
+    color: #b58863;
+}
+
+.square.dark::before,
+.square.dark::after {
+    color: #f0d9b5;
 }
 
 .square.drag-over {
-    background: #90EE90 !important;
+    opacity: 0.7;
+    box-shadow: inset 0 0 10px rgba(255, 255, 0, 0.5);
 }
 
 .square:hover {
-    opacity: 0.8;
+    opacity: 0.85;
 }
 
 .analysis-panel {
@@ -234,6 +342,9 @@ h1 {
     margin-top: 10px;
     padding-left: 20px;
 }
+
+
+
 
 @media (max-width: 768px) {
     .main-content {
