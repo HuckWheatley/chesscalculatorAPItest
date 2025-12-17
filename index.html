@@ -1,32 +1,52 @@
 <!DOCTYPE html>
-</html lang="en">
+<html lang="en">
 <head>
-  <link rel="stylesheet" href="style.css">
-  <link rel="javascript" href="script.js">
-  <meta charset="UTF-8">
-<title> Chess Calculator </title>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess Calculator</title>
+    <link rel="stylesheet" href="style.css">
 </head>
+<body class="background">
+    <div class="container">
+        <h1>Chess Calculator</h1>
+        
+        <div class="controls">
+            <label>Turn:</label>
+            <select id="turn-select">
+                <option value="white">White</option>
+                <option value="black">Black</option>
+            </select>
+            <button id="analyze-btn">Analyze Position</button>
+            <button id="clear-btn">Clear Board</button>
+            <button id="reset-btn">Reset to Start</button>
+        </div>
 
+        <div class="main-content">
+            <div class="board-section">
+                <div class="piece-palette">
+                    <h3>Drag pieces to the board:</h3>
+                    <div id="white-pieces" class="piece-group"></div>
+                    <div id="black-pieces" class="piece-group"></div>
+                </div>
+                
+                <div id="chessboard"></div>
+            </div>
 
-<body class="background"> </body>
-  
-<div class="container">
-  <h1 
-    align = "center"
-    style="color: white;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-size: 50px;
-    padding-top: 50px;">
-    Chess Calculator
-  </h1>
+            <div class="analysis-panel">
+                <h2>Position Analysis</h2>
+                <div id="analysis-result">
+                    <p>Click "Analyze Position" to see the FEN notation and position details.</p>
+                </div>
+                
+                <div class="fen-section">
+                    <h3>FEN Notation:</h3>
+                    <div id="fen-output"></div>
+                    <button id="copy-fen-btn">Copy FEN</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-  <div class="calculator">
-    <input type="text" id="expression" placeholder="White position" />
-
-    <div id="result"></div>
-    <input type="text" id="expression" placeholder="Black position" />
-    <button onclick="calculate()">Calculate</button>
-    <div id="result"></div>
-
-  </div>
+    <script src="script.js"></script>
+</body>
+</html>
